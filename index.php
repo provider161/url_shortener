@@ -7,27 +7,36 @@ and open the template in the editor.
 <html>
     <head>
         <meta charset="UTF-8">
-        <title></title>
+        <title>URL shortener</title>
     </head>
     <body>
         <form action="" method="GET">
-            Enter url<br>
-            <textarea name=longurl cols=50 rows=5 wrap=virtual></textarea>
+            <p><b>Enter url</b><br>
+            <textarea name="longurl" cols="50" rows="5" wrap="off"></textarea>
             <br>
-            Enter desired short url<br>
-            <textarea name=desireurl cols=50 rows=5 wrap=virtual></textarea>
-            <input type=submit value=Send>
+            <p><b>Enter desired short url</b><br>
+            <textarea name="desireurl" cols="50" rows="5" wrap="off"></textarea>
+            <input type="submit" value="Send">
+        </form>
+        <form action="dbcleaner.php" method="GET">
+            <p><b>Clean URLs in DataBase older, than (in days):</b><br>
+            <textarea name="cleanperiod" cols="10" rows="1" wrap="off"></textarea>
+            <input type="checkbox" name="cleanall"> Clean all URLs in database<br>
+            <input type=submit value=Clean>
         </form>
         <?php
         $settings = parse_ini_file("settings.php");
         $domain = $settings['domain'];
         $longurl = trim(filter_input(INPUT_GET, 'longurl'));
         $desireurl = trim(filter_input(INPUT_GET, 'desireurl'));
+        $time = time();
+        
         //Connection to DB
             $dbconnect = mysql_connect($settings['dbhost'], $settings['dbuser'], $settings['dbpass']);
             $dbselect = mysql_select_db($settings['dbname']);
-                if (!$dbconnect) exit("DB connection failed, check your settings");
-                if (!$dbselect) exit("DB selection failed, check your settings");
+                if (!$dbconnect) {exit("DB connection failed, check your settings");}
+                if (!$dbselect) {exit("DB selection failed, check your settings");}
+                
         //Function for url validation      
             function get_curl_data($url) {
                 $c = curl_init();
@@ -39,8 +48,9 @@ and open the template in the editor.
                 curl_exec($c);
                 $httpcode = curl_getinfo($c, CURLINFO_HTTP_CODE);
                 curl_close($c);
-                    return array("httpcode" => $httpcode); 
+                return array("httpcode" => $httpcode); 
             }
+            
         //Function for redirect
             function redirect($url) {
             mkdir("$url");
@@ -49,16 +59,18 @@ and open the template in the editor.
             fwrite($f, $redirect);
             fclose($f);
             }
+            
         //Printing number of urls in DB
         $urlcountquery = mysql_query("SELECT * FROM shorturl");
         $urlcount = mysql_num_rows($urlcountquery);
-        echo "urls in database: ".$urlcount."<br>";
+        echo "URLs in database: ".$urlcount."<br>";
+        
         //url validation
             $longurldata = get_curl_data($longurl);
             if ($longurl != NULL){
                     if (filter_var($longurl, FILTER_VALIDATE_URL) == FALSE OR $longurldata['httpcode'] == 404) {
-                        echo "url not found or invalid";
-                        }
+                        echo "<br>URL not found or invalid";
+                        }                      
         //Desire short url generating
                     else {
                         if ($desireurl != NULL) {
@@ -68,21 +80,19 @@ and open the template in the editor.
                                 if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
                             $shorturl = "$domain$desireurl";
                             redirect($desireurl);
-                            //Put in DB
-                            $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`) VALUES (NULL,'$longurl','$desireurl')";
+                            $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$desireurl','$time')";
                             mysql_query($sql1);
-                            echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl</a>";//printing short url
+                            echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl</a>";
                         }
                         else {
         //Random short url generating
-                        $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890"; //symbols for random short url
-                        $rand = trim(substr(str_shuffle($symbols),0,$settings['length'])); //choosing random symbols
+                        $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
+                        $rand = trim(substr(str_shuffle($symbols),0,$settings['length']));
                         $shorturl2 = "$domain$rand";//short url
                         redirect($rand);
-                        //Put in DB
-                        $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`) VALUES (NULL,'$longurl','$rand')";
+                        $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$rand','$time')";
                         mysql_query($sql2);
-                        echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl2</a>";//printing short url
+                        echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl2</a>";
                         }
                     }
             }
