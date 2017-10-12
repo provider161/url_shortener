@@ -3,15 +3,16 @@ $settings = parse_ini_file("settings.php");
 $cleanperiod = trim(filter_input(INPUT_GET, 'cleanperiod'));
 $cleanperiodsql = time() - ($cleanperiod*24*60*60);
 $cleanall = filter_input(INPUT_GET, 'cleanall');
+htmlentities($cleanperiod);
 //Connection to DB
 $dbconnect = mysql_connect($settings['dbhost'], $settings['dbuser'], $settings['dbpass']);
 $dbselect = mysql_select_db($settings['dbname']);
     if (!$dbconnect) {exit("DB connection failed, check your settings");}
     if (!$dbselect) {exit("DB selection failed, check your settings");}
 //DB cleaning function
+global $cleanperiodsql;
 function cleandb($cleanflag) {
-    global $cleanperiodsql;
-    if ($cleanflag == TRUE) {
+        if ($cleanflag == TRUE) {
         $sqlcleanall = "TRUNCATE `shorturl`";
         mysql_query($sqlcleanall);
         echo "Database is totally cleaned";

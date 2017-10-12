@@ -29,6 +29,8 @@ and open the template in the editor.
         $domain = $settings['domain'];
         $longurl = trim(filter_input(INPUT_GET, 'longurl'));
         $desireurl = trim(filter_input(INPUT_GET, 'desireurl'));
+        htmlentities($longurl);
+        htmlentities($desireurl);
         $time = time();
         
         //Connection to DB
