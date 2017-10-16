@@ -1,29 +1,32 @@
 <?php
-$settings = parse_ini_file("settings.php");
+include_once 'settings.php';
+include_once 'dbconnection.php';
+
 $cleanperiod = trim(filter_input(INPUT_GET, 'cleanperiod'));
 $cleanperiodsql = time() - ($cleanperiod*24*60*60);
 $cleanall = filter_input(INPUT_GET, 'cleanall');
 htmlentities($cleanperiod);
+
 //Connection to DB
-$dbconnect = mysql_connect($settings['dbhost'], $settings['dbuser'], $settings['dbpass']);
-$dbselect = mysql_select_db($settings['dbname']);
-    if (!$dbconnect) {exit("DB connection failed, check your settings");}
-    if (!$dbselect) {exit("DB selection failed, check your settings");}
+    $connection = new Dbconnection($dbhost, $dbname, $dbuser, $dbpass);
+    $connection->dbconnect();
+    $connection->dbselect();
+        
 //DB cleaning function
-global $cleanperiodsql;
-function cleandb($cleanflag) {
+    global $cleanperiodsql;
+    function cleandb($cleanflag) {
         if ($cleanflag == TRUE) {
         $sqlcleanall = "TRUNCATE `shorturl`";
         mysql_query($sqlcleanall);
         echo "Database is totally cleaned";
-           }
-    else {
-        $delurlcountquery = mysql_query("SELECT * FROM `shorturl` WHERE `time` < $cleanperiodsql");
-        $delurlcount = mysql_num_rows($delurlcountquery);
-        $sqlclean = "DELETE FROM `shorturl` WHERE `time` < $cleanperiodsql";
-        mysql_query($sqlclean);
-        echo "Totally URLs deleted: ".$delurlcount."<br>";
+        }
+        else {
+            $delurlcountquery = mysql_query("SELECT * FROM `shorturl` WHERE `time` < $cleanperiodsql");
+            $delurlcount = mysql_num_rows($delurlcountquery);
+            $sqlclean = "DELETE FROM `shorturl` WHERE `time` < $cleanperiodsql";
+            mysql_query($sqlclean);
+            echo "Totally URLs deleted: ".$delurlcount."<br>";
+        }
     }
-}
 cleandb ($cleanall);
 mysqlclose($dbconnect);

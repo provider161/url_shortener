@@ -24,9 +24,10 @@ and open the template in the editor.
             <input type="checkbox" name="cleanall"> Clean all URLs in database<br>
             <input type=submit value=Clean>
         </form>
-        <?php
-        $settings = parse_ini_file("settings.php");
-        $domain = $settings['domain'];
+<?php
+        include_once "settings.php";
+        include_once 'dbconnection.php';
+        
         $longurl = trim(filter_input(INPUT_GET, 'longurl'));
         $desireurl = trim(filter_input(INPUT_GET, 'desireurl'));
         htmlentities($longurl);
@@ -34,10 +35,9 @@ and open the template in the editor.
         $time = time();
         
         //Connection to DB
-            $dbconnect = mysql_connect($settings['dbhost'], $settings['dbuser'], $settings['dbpass']);
-            $dbselect = mysql_select_db($settings['dbname']);
-                if (!$dbconnect) {exit("DB connection failed, check your settings");}
-                if (!$dbselect) {exit("DB selection failed, check your settings");}
+            $connection = new Dbconnection($dbhost, $dbname, $dbuser, $dbpass);
+            $connection->dbconnect();
+            $connection->dbselect();
                 
         //Function for url validation      
             function get_curl_data($url) {
@@ -55,17 +55,17 @@ and open the template in the editor.
             
         //Function for redirect
             function redirect($url) {
-            mkdir("$url");
-            $f = fopen("$url/index.php", "w+");
-            $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $longurl\"); exit();";
-            fwrite($f, $redirect);
-            fclose($f);
+                mkdir("$url");
+                $f = fopen("$url/index.php", "w+");
+                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $longurl\"); exit();";
+                fwrite($f, $redirect);
+                fclose($f);
             }
             
         //Printing number of urls in DB
-        $urlcountquery = mysql_query("SELECT * FROM shorturl");
-        $urlcount = mysql_num_rows($urlcountquery);
-        echo "URLs in database: ".$urlcount."<br>";
+            $urlcountquery = mysql_query("SELECT * FROM shorturl");
+            $urlcount = mysql_num_rows($urlcountquery);
+            echo "URLs in database: ".$urlcount."<br>";
         
         //url validation
             $longurldata = get_curl_data($longurl);
@@ -89,7 +89,7 @@ and open the template in the editor.
                         else {
         //Random short url generating
                         $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
-                        $rand = trim(substr(str_shuffle($symbols),0,$settings['length']));
+                        $rand = trim(substr(str_shuffle($symbols),0,$length));
                         $shorturl2 = "$domain$rand";//short url
                         redirect($rand);
                         $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$rand','$time')";
@@ -99,6 +99,6 @@ and open the template in the editor.
                     }
             }
             mysqlclose($dbconnect);
-        ?>
+?>
     </body>
 </html>
