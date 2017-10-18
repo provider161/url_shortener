@@ -24,7 +24,7 @@ and open the template in the editor.
             <input type="checkbox" name="cleanall"> Clean all URLs in database<br>
             <input type=submit value=Clean>
         </form>
-<?php
+    <?php
         include_once "settings.php";
         include_once 'dbconnection.php';
         
@@ -35,10 +35,9 @@ and open the template in the editor.
         $time = time();
         
         //Connection to DB
-            $connection = new Dbconnection($dbhost, $dbname, $dbuser, $dbpass);
-            $connection->dbconnect();
-            $connection->dbselect();
-                
+            Database::dbconnect($dbhost, $dbuser, $dbpass);
+            Database::dbselect($dbname);
+        
         //Function for url validation      
             function get_curl_data($url) {
                 $c = curl_init();
@@ -55,18 +54,12 @@ and open the template in the editor.
             
         //Function for redirect
             function redirect($url) {
+                global $longurl;
                 mkdir("$url");
-                $f = fopen("$url/index.php", "w+");
                 $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $longurl\"); exit();";
-                fwrite($f, $redirect);
-                fclose($f);
+                file_put_contents("$url/index.php", $redirect);
             }
-            
-        //Printing number of urls in DB
-            $urlcountquery = mysql_query("SELECT * FROM shorturl");
-            $urlcount = mysql_num_rows($urlcountquery);
-            echo "URLs in database: ".$urlcount."<br>";
-        
+                    
         //url validation
             $longurldata = get_curl_data($longurl);
             if ($longurl != NULL){
@@ -84,7 +77,7 @@ and open the template in the editor.
                             redirect($desireurl);
                             $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$desireurl','$time')";
                             mysql_query($sql1);
-                            echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl</a>";
+                            echo "Short url: "."<a href=$longurl target='_blank'>$shorturl</a><br>";
                         }
                         else {
         //Random short url generating
@@ -94,11 +87,18 @@ and open the template in the editor.
                         redirect($rand);
                         $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$rand','$time')";
                         mysql_query($sql2);
-                        echo "<br>Short url: "."<a href=$longurl target='_blank'>$shorturl2</a>";
+                        echo "Short url: "."<a href=$longurl target='_blank'>$shorturl2</a><br>";
                         }
                     }
             }
-            mysqlclose($dbconnect);
-?>
+            
+        //Printing number of urls in DB
+            $urlcountquery = mysql_query("SELECT * FROM shorturl");
+            $urlcount = mysql_num_rows($urlcountquery);
+            echo "<br>URLs in database: ".$urlcount."<br>";
+        
+        //Closing database    
+            Database::dbclose();
+    ?>
     </body>
 </html>

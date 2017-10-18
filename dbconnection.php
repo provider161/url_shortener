@@ -1,20 +1,18 @@
 <?php
-class Dbconnection {    
-    function __construct($host, $name, $user, $password) {
-        $this->host = $host;
-        $this->name = $name;
-        $this->user = $user;
-        $this->password = $password;
+class Database {    
+
+    static function dbconnect($host, $user, $password){
+        $dbconnect = mysql_connect($host, $user, $password);
+        if (!$dbconnect) {die("Не удалось подключиться к базе: " . mysql_error());}
     }
     
-    function dbconnect(){
-        $dbconnect = mysql_connect($this->host, $this->user, $this->password);
-        if (!$dbconnect) {exit("DB connection failed, check your settings");}
+    static function dbselect($name){
+        $dbselect = mysql_select_db($name);
+        if (!$dbselect) {die("Не удалось выбрать базу: " . mysql_error());}
     }
     
-    function dbselect(){
-        $dbselect = mysql_select_db($this->name);
-        if (!$dbselect) {exit("DB selection failed, check your settings");}
+    static function dbclose(){
+        mysqlclose();
     }
 }
 ?>
