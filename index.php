@@ -33,72 +33,96 @@ and open the template in the editor.
         htmlentities($longurl);
         htmlentities($desireurl);
         $time = time();
+        global $time, $longurl, $desireurl;
+
+        #Connection to DB
+        Database::dbconnect($dbhost, $dbuser, $dbpass);
+        Database::dbselect($dbname);
+             
+        #Making an URL object
+        $resulturl = new Urlgenerator($domain, $length, $longurl, $time, $desireurl);
+         
+        #Generate short URL
+        if ($longurl != NULL) {
+            $checkurl = check_url($longurl);
+            if ($desireurl != NULL){
+                $resulturl->desireurl();
+            }
+            else{
+                $resulturl->randomurl();
+            }
+        }
+                        
+        #Printing number of urls in DB
+        $urlcountquery = mysql_query("SELECT * FROM shorturl");
+        $urlcount = mysql_num_rows($urlcountquery);
+        echo "<br>URLs in database: ".$urlcount."<br>";
         
-        //Connection to DB
-            Database::dbconnect($dbhost, $dbuser, $dbpass);
-            Database::dbselect($dbname);
-        
-        //Function for url validation      
-            function get_curl_data($url) {
-                $c = curl_init();
-                curl_setopt($c, CURLOPT_HEADER, 1);
-                curl_setopt($c, CURLOPT_NOBODY, 1);
-                curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($c, CURLOPT_FRESH_CONNECT, 1);
-                curl_setopt($c, CURLOPT_URL, $url);
-                curl_exec($c);
-                $httpcode = curl_getinfo($c, CURLINFO_HTTP_CODE);
-                curl_close($c);
-                return array("httpcode" => $httpcode); 
+        #Closing database    
+        Database::dbclose();
+            
+        #Function for url validation      
+        function check_url($url) {
+            $c = curl_init();
+            curl_setopt($c, CURLOPT_HEADER, 1);
+            curl_setopt($c, CURLOPT_NOBODY, 1);
+            curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($c, CURLOPT_FRESH_CONNECT, 1);
+            curl_setopt($c, CURLOPT_URL, $url);
+            curl_exec($c);
+            $httpcode = curl_getinfo($c, CURLINFO_HTTP_CODE);
+            curl_close($c);
+            if (filter_var($url, FILTER_VALIDATE_URL) == FALSE OR $httpcode == 404) {
+                exit ("<br>Entered URL not found or invalid");
+            }
+            else{
+                return TRUE;
+            }
+        }   
+            
+        class Urlgenerator {
+            function __construct($classdomain, $classlength, $classlongurl, $classtime, $classdesireurl) {
+                $this->domain = $classdomain;
+                $this->length = $classlength;
+                $this->longurl = $classlongurl;
+                $this->time = $classtime;
+                $this->desireurl = $classdesireurl;
+                
+            }
+                                    
+            function desireurl(){
+                #checking desire url for doubles in DB
+                $desireresult=mysql_query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'"); 
+                $desireurldouble=mysql_fetch_array($desireresult);
+                if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
+                #Make a shorturl and put it in DB    
+                $shorturl = "$this->domain$this->desireurl";
+                $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$this->desireurl','$this->time')";
+                mysql_query($sql1);
+                #Make redirect
+                mkdir("$this->desireurl");
+                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
+                file_put_contents("$this->desireurl/index.php", $redirect);
+                
+                echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+             }
+                
+            function randomurl(){
+                $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
+                $rand = trim(substr(str_shuffle($symbols),0,$this->length));
+                #Make random URL and put in DB
+                $shorturl2 = "$this->domain$rand";
+                $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$rand','$this->time')";
+                mysql_query($sql2);
+                #Make redirect
+                mkdir("$rand");
+                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
+                file_put_contents("$rand/index.php", $redirect);
+                
+                echo "Short url: "."<a href=$this->longurl target='_blank'>$shorturl2</a><br>";
             }
             
-        //Function for redirect
-            function redirect($url) {
-                global $longurl;
-                mkdir("$url");
-                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $longurl\"); exit();";
-                file_put_contents("$url/index.php", $redirect);
-            }
-                    
-        //url validation
-            $longurldata = get_curl_data($longurl);
-            if ($longurl != NULL){
-                    if (filter_var($longurl, FILTER_VALIDATE_URL) == FALSE OR $longurldata['httpcode'] == 404) {
-                        echo "<br>URL not found or invalid";
-                        }                      
-        //Desire short url generating
-                    else {
-                        if ($desireurl != NULL) {
-                            //checking url for doubles
-                                $result=mysql_query("SELECT shorturl FROM shorturl WHERE shorturl='$desireurl'"); 
-                                $desireurldouble=mysql_fetch_array($result);
-                                if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
-                            $shorturl = "$domain$desireurl";
-                            redirect($desireurl);
-                            $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$desireurl','$time')";
-                            mysql_query($sql1);
-                            echo "Short url: "."<a href=$longurl target='_blank'>$shorturl</a><br>";
-                        }
-                        else {
-        //Random short url generating
-                        $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
-                        $rand = trim(substr(str_shuffle($symbols),0,$length));
-                        $shorturl2 = "$domain$rand";//short url
-                        redirect($rand);
-                        $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$longurl','$rand','$time')";
-                        mysql_query($sql2);
-                        echo "Short url: "."<a href=$longurl target='_blank'>$shorturl2</a><br>";
-                        }
-                    }
-            }
-            
-        //Printing number of urls in DB
-            $urlcountquery = mysql_query("SELECT * FROM shorturl");
-            $urlcount = mysql_num_rows($urlcountquery);
-            echo "<br>URLs in database: ".$urlcount."<br>";
-        
-        //Closing database    
-            Database::dbclose();
+        }
     ?>
     </body>
 </html>
