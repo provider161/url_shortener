@@ -10,7 +10,7 @@ and open the template in the editor.
         <title>URL shortener</title>
     </head>
     <body>
-        <form action="" method="GET">
+        <form action="" method="POST">
             <p><b>Enter url</b><br>
             <textarea name="longurl" cols="50" rows="5" wrap="off"></textarea>
             <br>
@@ -18,29 +18,30 @@ and open the template in the editor.
             <textarea name="desireurl" cols="50" rows="5" wrap="off"></textarea>
             <input type="submit" value="Send">
         </form>
-        <form action="dbcleaner.php" method="GET">
+        <form action="dbcleaner.php" method="POST">
             <p><b>Clean URLs in DataBase older, than (in days):</b><br>
             <textarea name="cleanperiod" cols="10" rows="1" wrap="off"></textarea>
             <input type="checkbox" name="cleanall"> Clean all URLs in database<br>
             <input type=submit value=Clean>
         </form>
     <?php
-        include_once "settings.php";
-        include_once 'dbconnection.php';
+        require_once "settings.php";
         
-        $longurl = trim(filter_input(INPUT_GET, 'longurl'));
-        $desireurl = trim(filter_input(INPUT_GET, 'desireurl'));
+        $longurl = trim(filter_input(INPUT_POST, 'longurl'));
+        $desireurl = trim(filter_input(INPUT_POST, 'desireurl'));
         htmlentities($longurl);
         htmlentities($desireurl);
         $time = time();
         global $time, $longurl, $desireurl;
 
         #Connection to DB
-        Database::dbconnect($dbhost, $dbuser, $dbpass);
-        Database::dbselect($dbname);
-             
+        $dbconn = new mysqli($dbhost, $dbuser, $dbpass, $dbname, $dbport);
+        if ($dbconn->connect_error) {
+            die('Connect Error (' . $dbconn->connect_errno . ') ' . $dbconn->connect_error);
+        }
+               
         #Making an URL object
-        $resulturl = new Urlgenerator($domain, $length, $longurl, $time, $desireurl);
+        $resulturl = new Urlgenerator($domain, $length, $longurl, $time, $desireurl, $dbconn);
          
         #Generate short URL
         if ($longurl != NULL) {
@@ -54,12 +55,12 @@ and open the template in the editor.
         }
                         
         #Printing number of urls in DB
-        $urlcountquery = mysql_query("SELECT * FROM shorturl");
-        $urlcount = mysql_num_rows($urlcountquery);
+        $urlcountquery = $dbconn->query('SELECT * FROM shorturl');
+        $urlcount = $urlcountquery->num_rows;
         echo "<br>URLs in database: ".$urlcount."<br>";
         
         #Closing database    
-        Database::dbclose();
+        $dbconn::close;
             
         #Function for url validation      
         function check_url($url) {
@@ -81,24 +82,23 @@ and open the template in the editor.
         }   
             
         class Urlgenerator {
-            function __construct($classdomain, $classlength, $classlongurl, $classtime, $classdesireurl) {
+            function __construct($classdomain, $classlength, $classlongurl, $classtime, $classdesireurl, $database) {
                 $this->domain = $classdomain;
                 $this->length = $classlength;
                 $this->longurl = $classlongurl;
                 $this->time = $classtime;
                 $this->desireurl = $classdesireurl;
-                
+                $this->database = $database;
             }
-                                    
+                                                
             function desireurl(){
                 #checking desire url for doubles in DB
-                $desireresult=mysql_query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'"); 
-                $desireurldouble=mysql_fetch_array($desireresult);
+                $desireresult=$this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'"); 
+                $desireurldouble=$desireresult->fetch_array(MYSQLI_ASSOC);
                 if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
                 #Make a shorturl and put it in DB    
                 $shorturl = "$this->domain$this->desireurl";
-                $sql1 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$this->desireurl','$this->time')";
-                mysql_query($sql1);
+                $this->database->query("INSERT INTO `shorturl` (`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$this->desireurl','$this->time')");
                 #Make redirect
                 mkdir("$this->desireurl");
                 $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
@@ -112,8 +112,7 @@ and open the template in the editor.
                 $rand = trim(substr(str_shuffle($symbols),0,$this->length));
                 #Make random URL and put in DB
                 $shorturl2 = "$this->domain$rand";
-                $sql2 = "INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$rand','$this->time')";
-                mysql_query($sql2);
+                $this->database->query("INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$rand','$this->time')");
                 #Make redirect
                 mkdir("$rand");
                 $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";

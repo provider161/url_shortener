@@ -1,35 +1,44 @@
 <?php
-include_once 'settings.php';
-include_once 'dbconnection.php';
+require_once 'settings.php';
 
-$cleanperiod = trim(filter_input(INPUT_GET, 'cleanperiod'));
+$cleanperiod = trim(filter_input(INPUT_POST, 'cleanperiod'));
 $cleanperiodsql = time() - ($cleanperiod*24*60*60);
-$cleanall = filter_input(INPUT_GET, 'cleanall');
+$cleanall = filter_input(INPUT_POST, 'cleanall');
 htmlentities($cleanperiod);
 
-//Connection to DB
-Database::dbconnect($dbhost, $dbuser, $dbpass);
-Database::dbselect($dbname);
+#Connection to DB
+$dbconn = new mysqli($dbhost, $dbuser, $dbpass, $dbname, $dbport);
+if ($dbconn->connect_error) {
+    die('Connect Error (' . $dbconn->connect_errno . ') ' . $dbconn->connect_error);
+}
 
-$cleanall ? Dbclean::clean_all() : Dbclean::clean_period($cleanperiodsql);
+#Cleaning DB
+$cleandatabase = new Dbclean($dbconn, $cleanperiodsql);
+$cleanall ? $cleandatabase->clean_all() : $cleandatabase->clean_period();
 
-//Closing DB
-Database::dbclose();
+print_r($cleandatabase->clean_all());
 
-//Class for DB cleaning
+#Closing DB
+$dbconn::close;
+
+#Class for DB cleaning
 class Dbclean {
-    
-    static function clean_all(){
-        $result = mysql_query("SELECT `shorturl` FROM `shorturl`");
-        $delurlcount = mysql_num_rows($result);
+    function __construct($database, $period) {
+        $this->database = $database;
+        $this->period = $period;
+    }
+
+
+    function clean_all(){
+        $result = $this->database->query("SELECT shorturl FROM shorturl");
+        $delurlcount = $result->num_rows;
         $dirs = array();
-        while ($row = mysql_fetch_array($result, MYSQL_NUM)){
+        while ($row = $this->database->fetch_array($result, MYSQLI_NUM)){
             $dirs[] = $row[0];
         }
         
         //Cleaning DB
-        $sqlcleanall = "TRUNCATE `shorturl`";
-        mysql_query($sqlcleanall);
+        $this->database->query("TRUNCATE shorturl");
             
         //Cleaning directories
         foreach ($dirs as $directorie) {
@@ -39,17 +48,16 @@ class Dbclean {
         echo "Totally URLs deleted: ".$delurlcount."<br>";
     }
     
-    static function clean_period($period){
-        $result = mysql_query("SELECT `shorturl` FROM `shorturl` WHERE `time` < $period");
-        $delurlcount = mysql_num_rows($result);
+    function clean_period(){
+        $result = $this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `time` < $this->period");
+        $delurlcount = $result->num_rows;
         $dirs = array();
-        while ($row = mysql_fetch_array($result, MYSQL_NUM)){
+        while ($row = $this->database->fetch_array($result, MYSQLI_NUM)){
             $dirs[] = $row[0];
         }
         
         //Cleaning DB
-        $sqlcleanall = "DELETE FROM `shorturl` WHERE `time` < $period";
-        mysql_query($sqlcleanall);
+        $this->database->query("DELETE FROM `shorturl` WHERE `time` < $this->period");
             
         //Cleaning directories
         foreach ($dirs as $directorie) {
