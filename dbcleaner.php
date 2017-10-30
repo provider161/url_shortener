@@ -14,9 +14,8 @@ if ($dbconn->connect_error) {
 
 #Cleaning DB
 $cleandatabase = new Dbclean($dbconn, $cleanperiodsql);
-$cleanall ? $cleandatabase->clean_all() : $cleandatabase->clean_period();
 
-print_r($cleandatabase->clean_all());
+$cleanall ? $cleandatabase->clean_all() : $cleandatabase->clean_period();
 
 #Closing DB
 $dbconn::close;
@@ -30,41 +29,34 @@ class Dbclean {
 
 
     function clean_all(){
-        $result = $this->database->query("SELECT shorturl FROM shorturl");
-        $delurlcount = $result->num_rows;
-        $dirs = array();
-        while ($row = $this->database->fetch_array($result, MYSQLI_NUM)){
-            $dirs[] = $row[0];
-        }
-        
-        //Cleaning DB
-        $this->database->query("TRUNCATE shorturl");
-            
-        //Cleaning directories
-        foreach ($dirs as $directorie) {
-            unlink("$directorie/index.php");
-            rmdir("$directorie");
-        }
-        echo "Totally URLs deleted: ".$delurlcount."<br>";
+        $result = $this->database->query("SELECT shorturl FROM shorturl");             
+        #Cleaning DB
+        $this->database->query("TRUNCATE shorturl");          
+        $this->cleandirectories($this->getdirslist($result));
     }
     
     function clean_period(){
         $result = $this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `time` < $this->period");
-        $delurlcount = $result->num_rows;
-        $dirs = array();
-        while ($row = $this->database->fetch_array($result, MYSQLI_NUM)){
-            $dirs[] = $row[0];
-        }
-        
-        //Cleaning DB
+        #Cleaning DB
         $this->database->query("DELETE FROM `shorturl` WHERE `time` < $this->period");
-            
-        //Cleaning directories
-        foreach ($dirs as $directorie) {
+        $this->cleandirectories($this->getdirslist($result));
+    }
+    
+    function cleandirectories($dir){
+        foreach ($dir as $directorie) {
             unlink("$directorie/index.php");
             rmdir("$directorie");
         }
-        echo "Totally URLs deleted: ".$delurlcount."<br>";
+        
     }
     
+    function getdirslist($sqlresult){
+        $delurlcount = $sqlresult->num_rows;
+        $dirs = array();
+        while ($row = $$row = $sqlresult->fetch_row()){
+            $dirs[] = $row[0];
+        }
+        echo "Totally URLs deleted: ".$delurlcount."<br>";       
+        return $dirs;
+    }
 }

@@ -53,7 +53,7 @@ and open the template in the editor.
                 $resulturl->randomurl();
             }
         }
-                        
+                               
         #Printing number of urls in DB
         $urlcountquery = $dbconn->query('SELECT * FROM shorturl');
         $urlcount = $urlcountquery->num_rows;
@@ -96,32 +96,37 @@ and open the template in the editor.
                 $desireresult=$this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'"); 
                 $desireurldouble=$desireresult->fetch_array(MYSQLI_ASSOC);
                 if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
-                #Make a shorturl and put it in DB    
-                $shorturl = "$this->domain$this->desireurl";
-                $this->database->query("INSERT INTO `shorturl` (`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$this->desireurl','$this->time')");
-                #Make redirect
-                mkdir("$this->desireurl");
-                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
-                file_put_contents("$this->desireurl/index.php", $redirect);
-                
-                echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+                $this->makingshorturl($this->desireurl);
+                $this->makingredirect($this->desireurl);
              }
                 
             function randomurl(){
+                $checkresult=$this->database->query("SELECT `longurl`,`shorturl` FROM `shorturl` WHERE `longurl`='$this->longurl'"); 
+                $longurldouble=$checkresult->fetch_row();
+                if(isset($longurldouble)){
+                    $shorturl = $this->domain.$longurldouble[1];
+                    echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+                } else{
                 $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
                 $rand = trim(substr(str_shuffle($symbols),0,$this->length));
-                #Make random URL and put in DB
-                $shorturl2 = "$this->domain$rand";
-                $this->database->query("INSERT INTO `shorturl`(`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$rand','$this->time')");
-                #Make redirect
-                mkdir("$rand");
-                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
-                file_put_contents("$rand/index.php", $redirect);
-                
-                echo "Short url: "."<a href=$this->longurl target='_blank'>$shorturl2</a><br>";
+                $this->makingshorturl($rand);
+                $this->makingredirect($rand);
+                }
             }
             
+            function makingshorturl($url){
+                $shorturl = "$this->domain$url";
+                $this->database->query("INSERT INTO `shorturl` (`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$url','$this->time')");
+                echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+            }
+            
+            function makingredirect($url){
+                mkdir("$url");
+                $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
+                file_put_contents("$url/index.php", $redirect);
+
+            }            
         }
     ?>
     </body>
-</html>
+</html>"
