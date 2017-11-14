@@ -1,5 +1,44 @@
-#urls {text-align: center; background: blanchedalmond}
-#database {text-align: center; font-family: "Arial"; font-size: 12px; background: rosybrown}
-table {width: 200px; border: 1px; margin: auto}
-td {text-align: center}
-.text {text-align: center}
+body {
+  display: table-cell;
+  width:100%;
+  height:100%
+  padding:100px;
+  font-size:15px;
+  font-family: "Arial", "Helvetica Neue", "Helvetica", sans-serif;
+  background: url(cat-yawn.jpg) no-repeat center;
+}
+form {
+  width: 300px;
+  height: 90px;
+  margin: 0 auto;
+  padding: 100px;
+  border-radius: 10px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    text-align: center;
+}
+input[type="text"] {
+    width: 300px;
+    height: 24px;
+    margin-bottom: 10px;
+    padding: 2px 5px;
+    border: 1px solid #cccccc;
+    border-radius: 5px;
+    text-align: center;
+}
+input[type="submit"] {
+    display: inline-block;
+    width: auto;
+    margin: 0 5px;
+    padding: 6px 15px;
+    color: #ffffff;
+    background: #2c3e50;
+    border: none;
+    border-radius: 5px;
+}
+.button {
+    text-align: center;
+}

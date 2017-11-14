@@ -7,54 +7,41 @@
     </head>
     <body>
         <div id="urls">
-            <form method="POST" id="url" action=""></form>
-            <table>
-                <tr>
-                    <td>
-                        <input type="text" name="longurl" form="url" autofocus="autofocus" placeholder="Enter your URL" required="required">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <input type="text" name="desireurl" form="url" placeholder="There you can type desire short URL">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <input type="submit" value="Send"  form="url"> 
-                    </td>
-                </tr>
-            </table>
-        </div>
+            <form method="POST" id="url" action="">
+                <div>
+                  <label>Enter your URL</label>
+                  <input type="text" name="longurl" form="url" autofocus="autofocus" required>
+                </div>
+                <div>
+                  <label>There you can type desire short URL</label>
+                  <input type="text" name="desireurl" form="url">
+                </div>
+             <div class="button">
+               <input type="submit" value="Send"  form="url">
+             </div>
+         </form>
         <div id="database">
-            <form method="POST" id="cleandb" action="dbcleaner.php"></form>
-            <table>
-                <tr>
-                    <td>
-                        Clean URLs in DataBase for period:
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <input type="text" name="cleanperiod" form="cleandb" placeholder="Enter period in days">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <input type="submit" value="Clean"  form="cleandb">
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <input type="checkbox" name="cleanall"> Clean all URLs in database
-                    </td>
-                </tr>
-            </table>
-        </div>
-        
+            <form method="POST" id="cleandb" action="dbcleaner.php">
+              <div id="database">
+            <div>
+              <label>Clean URLs in DataBase for period:</label>
+              <input type="text" name="cleanperiod" form="cleandb" placeholder="Enter period in days">
+            </div>
+            <div class="button">
+                <input type="submit" value="Clean"  form="cleandb">
+            </div>
+            <label>
+              <input type="checkbox" name="cleanall">
+              Clean all URLs in database
+            </label>
+          </div>
+            </form>
+         </body>
+    </html>
+
     <?php
         require_once "settings.php";
-        
+
         $longurl = trim(filter_input(INPUT_POST, 'longurl'));
         $desireurl = trim(filter_input(INPUT_POST, 'desireurl'));
         htmlentities($longurl);
@@ -67,10 +54,10 @@
         if ($dbconn->connect_error) {
             die('Connect Error (' . $dbconn->connect_errno . ') ' . $dbconn->connect_error);
         }
-               
+
         #Making an URL object
         $resulturl = new Urlgenerator($domain, $length, $longurl, $time, $desireurl, $dbconn);
-         
+
         #Generate short URL
         if ($longurl != NULL) {
             $checkurl = check_url($longurl);
@@ -81,16 +68,16 @@
                 $resulturl->randomurl();
             }
         }
-                               
+
         #Printing number of urls in DB
         $urlcountquery = $dbconn->query('SELECT * FROM shorturl');
         $urlcount = $urlcountquery->num_rows;
         echo "<div class=\"text\">URLs in database: ".$urlcount."</div>";
-        
-        #Closing database    
+
+        #Closing database
         $dbconn::close;
-            
-        #Function for url validation      
+
+        #Function for url validation
         function check_url($url) {
             $c = curl_init();
             curl_setopt($c, CURLOPT_HEADER, 1);
@@ -107,8 +94,8 @@
             else{
                 return TRUE;
             }
-        }   
-            
+        }
+
         class Urlgenerator {
             function __construct($classdomain, $classlength, $classlongurl, $classtime, $classdesireurl, $database) {
                 $this->domain = $classdomain;
@@ -118,20 +105,20 @@
                 $this->desireurl = $classdesireurl;
                 $this->database = $database;
             }
-                                                
+
             function desireurl(){
                 # Checking desire url for doubles in DB
-                $desireresult=$this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'"); 
+                $desireresult=$this->database->query("SELECT `shorturl` FROM `shorturl` WHERE `shorturl`='$this->desireurl'");
                 $desireurldouble=$desireresult->fetch_array(MYSQLI_ASSOC);
                 if(isset($desireurldouble['shorturl'])) {exit ("<br>Such desire url already exists, enter another one");}
                 # Create desire shorturl
                 $this->makingshorturl($this->desireurl);
                 $this->makingredirect($this->desireurl);
              }
-                
+
             function randomurl(){
                 # Checking DB for already existing longurl
-                $checkresult=$this->database->query("SELECT `longurl`,`shorturl` FROM `shorturl` WHERE `longurl`='$this->longurl'"); 
+                $checkresult=$this->database->query("SELECT `longurl`,`shorturl` FROM `shorturl` WHERE `longurl`='$this->longurl'");
                 $longurldouble=$checkresult->fetch_row();
                 if(isset($longurldouble)){
                     $shorturl = $this->domain.$longurldouble[1];
@@ -144,19 +131,19 @@
                 $this->makingredirect($rand);
                 }
             }
-            
+
             function makingshorturl($url){
                 $shorturl = "$this->domain$url";
                 $this->mysqlsecureinput($this->longurl, $url);
                 echo "Short url: "."<a href=$this->longurl target='_blank'>$shorturl</a><br>";
             }
-            
+
             function makingredirect($url){
                 mkdir("$url");
                 $redirect = "<?php header(\"HTTP/1.1 301 Moved Permanently\"); header(\"Location: $this->longurl\"); exit();";
                 file_put_contents("$url/index.php", $redirect);
-            }            
-            
+            }
+
             function mysqlsecureinput($url1, $url2){
                 $input = $this->database->prepare("INSERT INTO `shorturl` (`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,?,?,'$this->time')");
                 $input->bind_param("ss", $url1, $url2);
