@@ -1,29 +1,57 @@
 <!DOCTYPE html>
-<!--
-To change this license header, choose License Headers in Project Properties.
-To change this template file, choose Tools | Templates
-and open the template in the editor.
--->
 <html>
     <head>
         <meta charset="UTF-8">
+        <link rel="stylesheet" type="text/css" href="syle.css">
         <title>URL shortener</title>
     </head>
     <body>
-        <form action="" method="POST">
-            <p><b>Enter url</b><br>
-                <textarea name="longurl" cols="50" rows="5" wrap="off" autofocus="autofocus" placeholder="Enter your URL" required="required"></textarea>
-            <br>
-            <p><b>Enter desired short url</b><br>
-                <textarea name="desireurl" cols="50" rows="5" wrap="off" placeholder="There you can type desire short URL"></textarea>
-            <input type="submit" value="Send">
-        </form>
-        <form action="dbcleaner.php" method="POST">
-            <p><b>Clean URLs in DataBase older, than (in days):</b><br>
-            <textarea name="cleanperiod" cols="10" rows="1" wrap="off"></textarea>
-            <input type="checkbox" name="cleanall"> Clean all URLs in database<br>
-            <input type=submit value=Clean>
-        </form>
+        <div id="urls">
+            <form method="POST" id="url" action=""></form>
+            <table>
+                <tr>
+                    <td>
+                        <input type="text" name="longurl" form="url" autofocus="autofocus" placeholder="Enter your URL" required="required">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="text" name="desireurl" form="url" placeholder="There you can type desire short URL">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="submit" value="Send"  form="url"> 
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div id="database">
+            <form method="POST" id="cleandb" action="dbcleaner.php"></form>
+            <table>
+                <tr>
+                    <td>
+                        Clean URLs in DataBase for period:
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="text" name="cleanperiod" form="cleandb" placeholder="Enter period in days">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="submit" value="Clean"  form="cleandb">
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <input type="checkbox" name="cleanall"> Clean all URLs in database
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
     <?php
         require_once "settings.php";
         
@@ -57,7 +85,7 @@ and open the template in the editor.
         #Printing number of urls in DB
         $urlcountquery = $dbconn->query('SELECT * FROM shorturl');
         $urlcount = $urlcountquery->num_rows;
-        echo "<br>URLs in database: ".$urlcount."<br>";
+        echo "<div class=\"text\">URLs in database: ".$urlcount."</div>";
         
         #Closing database    
         $dbconn::close;
@@ -107,7 +135,7 @@ and open the template in the editor.
                 $longurldouble=$checkresult->fetch_row();
                 if(isset($longurldouble)){
                     $shorturl = $this->domain.$longurldouble[1];
-                    echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+                    echo "Short url: "."<a href=$this->longurl target='_blank'>$shorturl</a><br>";
                 } else{
                 # Create random short url
                 $symbols = "QqWwEeRrTtYyUuIiOoPpAaSsDdFfGgHhJjKkLlZzXxCcVvBbNnMm1234567890";
@@ -119,9 +147,8 @@ and open the template in the editor.
             
             function makingshorturl($url){
                 $shorturl = "$this->domain$url";
-                #$this->database->query("INSERT INTO `shorturl` (`ID`, `longurl`, `shorturl`, `time`) VALUES (NULL,'$this->longurl','$url','$this->time')");
                 $this->mysqlsecureinput($this->longurl, $url);
-                echo "Short url: "."<a href=$$this->longurl target='_blank'>$shorturl</a><br>";
+                echo "Short url: "."<a href=$this->longurl target='_blank'>$shorturl</a><br>";
             }
             
             function makingredirect($url){
