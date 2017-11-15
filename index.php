@@ -36,9 +36,8 @@
             </label>
           </div>
             </form>
-         </body>
-    </html>
 
+<!--
     <?php
         require_once "settings.php";
 
@@ -152,5 +151,6 @@
             }
         }
     ?>
+-->
     </body>
-</html>"
+</html>
